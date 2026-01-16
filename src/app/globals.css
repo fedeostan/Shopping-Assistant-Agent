@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* Buildi UI Design System - Tailwind v4 */
+
+:root {
+  /* Colors */
+  --color-background: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FAFAFA;
+
+  --color-text-header: #1F2937;
+  --color-text-body: #4B5563;
+  --color-text-muted: #9CA3AF;
+
+  --color-accent: #7E4501;
+  --color-accent-hover: #5C3301;
+  --color-accent-decorative: #FC8A03;
+  --color-accent-light: #FEF3E7;
+
+  --color-border: #E5E7EB;
+  --color-border-focus: #7E4501;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 4px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-lg: 0 4px 8px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02);
+
+  /* Radii */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease-out;
+}
+
+/* Tailwind v4 theme configuration */
+@theme inline {
+  /* Font family */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Colors */
+  --color-background: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FAFAFA;
+
+  --color-text-header: #1F2937;
+  --color-text-body: #4B5563;
+  --color-text-muted: #9CA3AF;
+
+  --color-accent: #7E4501;
+  --color-accent-hover: #5C3301;
+  --color-accent-decorative: #FC8A03;
+  --color-accent-light: #FEF3E7;
+
+  --color-border: #E5E7EB;
+  --color-border-focus: #7E4501;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 4px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-lg: 0 4px 8px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02);
+
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+}
+
+/* Base styles */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-body);
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-header);
+  font-weight: 600;
+}
+
+h1 { font-size: 2.25rem; line-height: 2.5rem; }
+h2 { font-size: 1.875rem; line-height: 2.25rem; }
+h3 { font-size: 1.5rem; line-height: 2rem; }
+h4 { font-size: 1.25rem; line-height: 1.75rem; }
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Utility classes */
+.accent-decorative {
+  color: var(--color-accent-decorative);
+}
+
+.border-accent-decorative {
+  border-color: var(--color-accent-decorative);
+}
+
+.bg-accent-decorative {
+  background-color: var(--color-accent-decorative);
+}
