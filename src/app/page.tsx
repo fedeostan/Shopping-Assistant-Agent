@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 
 export default function Home() {
@@ -18,7 +19,7 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          <a
+          <Link
             href="/chat"
             className="
               flex h-12 items-center justify-center
@@ -30,8 +31,8 @@ export default function Home() {
             "
           >
             Start Shopping
-          </a>
-          <a
+          </Link>
+          <Link
             href="/auth/login"
             className="
               flex h-12 items-center justify-center
@@ -44,7 +45,7 @@ export default function Home() {
             "
           >
             Sign In
-          </a>
+          </Link>
         </div>
 
         <p className="text-sm text-[var(--color-text-muted)]">
