@@ -1,24 +1,42 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useChatStore } from '@/stores/chat-store'
 import { ChatInterface } from '@/components/chat/ChatInterface'
 import { createClient } from '@/lib/supabase/client'
+import { useChat } from '@/hooks/useChat'
 import type { Message } from '@/types/chat'
 
 export default function ChatPage() {
   const params = useParams()
   const router = useRouter()
   const conversationId = params.id as string
+  const [dbSessionId, setDbSessionId] = useState<string | undefined>()
+  const [isReady, setIsReady] = useState(false)
 
   const {
     setActiveConversation,
     setMessages,
-    addMessage,
-    setIsLoading,
     conversations,
   } = useChatStore()
+
+  // Get session ID from store (for newly created conversations) or from DB
+  const n8nSessionId = useMemo(() => {
+    // First check store (handles newly created conversations)
+    const storeConversation = conversations.find((c) => c.id === conversationId)
+    if (storeConversation?.n8nSessionId) {
+      return storeConversation.n8nSessionId
+    }
+    // Fall back to DB value
+    return dbSessionId
+  }, [conversations, conversationId, dbSessionId])
+
+  const { sendMessage, error } = useChat({
+    conversationId,
+    n8nSessionId,
+    onError: (err) => console.error('Chat error:', err),
+  })
 
   // Load messages for this conversation
   useEffect(() => {
@@ -44,6 +62,7 @@ export default function ChatPage() {
         return
       }
 
+      setDbSessionId(conversation.n8n_session_id ?? undefined)
       setActiveConversation(conversationId)
 
       // Load messages
@@ -63,104 +82,34 @@ export default function ChatPage() {
         }))
         setMessages(messages)
       }
+
+      setIsReady(true)
     }
 
     loadMessages()
   }, [conversationId, router, setActiveConversation, setMessages])
 
-  const handleSendMessage = useCallback(
-    async (messageText: string) => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+      </div>
+    )
+  }
 
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-
-      setIsLoading(true)
-
-      try {
-        const messageId = crypto.randomUUID()
-
-        // Save message to database
-        const { error: msgError } = await supabase
-          .from('messages')
-          .insert({
-            id: messageId,
-            conversation_id: conversationId,
-            role: 'user',
-            content: messageText,
-            message_type: 'text',
-          })
-
-        if (msgError) {
-          console.error('Failed to save message:', msgError)
-        }
-
-        // Update conversation timestamp
-        await supabase
-          .from('conversations')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', conversationId)
-
-        // Add message to local state
-        const userMessage: Message = {
-          id: messageId,
-          conversationId,
-          role: 'user',
-          content: { type: 'text', content: messageText },
-          createdAt: new Date(),
-        }
-        addMessage(userMessage)
-
-        // Get the conversation's n8n session ID (used in Phase 3)
-        const conversation = conversations.find((c) => c.id === conversationId)
-        const _n8nSessionId = conversation?.n8nSessionId
-
-        // Add thinking indicator
-        const thinkingId = crypto.randomUUID()
-        addMessage({
-          id: thinkingId,
-          conversationId,
-          role: 'assistant',
-          content: { type: 'thinking' },
-          createdAt: new Date(),
-        })
-
-        // TODO: Phase 3 - Call n8n webhook with n8nSessionId and handle streaming response
-        // For now, simulate a response
-        setTimeout(async () => {
-          const responseText = 'I understand you\'re looking for help. Let me search for some options that match your preferences.'
-
-          // Update thinking to response
-          useChatStore.getState().updateMessage(thinkingId, {
-            type: 'text',
-            content: responseText,
-          })
-
-          // Save assistant message to database
-          await supabase
-            .from('messages')
-            .insert({
-              id: thinkingId,
-              conversation_id: conversationId,
-              role: 'assistant',
-              content: responseText,
-              message_type: 'text',
-            })
-
-          setIsLoading(false)
-        }, 1500)
-      } catch (error) {
-        console.error('Error sending message:', error)
-        setIsLoading(false)
-      }
-    },
-    [conversationId, router, addMessage, setIsLoading, conversations]
+  return (
+    <>
+      <ChatInterface onSendMessage={sendMessage} />
+      {error && (
+        <div
+          role="alert"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-50 text-red-700 px-4 py-2 rounded-lg shadow-md text-sm"
+        >
+          {error}
+        </div>
+      )}
+    </>
   )
-
-  return <ChatInterface onSendMessage={handleSendMessage} />
 }
 
 // Helper to parse message content from database

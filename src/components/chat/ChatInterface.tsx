@@ -4,12 +4,14 @@ import { ShoppingBag } from 'lucide-react'
 import { useChatStore } from '@/stores/chat-store'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
+import type { PersonaType } from '@/types/chat'
 
 interface ChatInterfaceProps {
   onSendMessage: (message: string) => void
+  persona?: PersonaType
 }
 
-export function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
+export function ChatInterface({ onSendMessage, persona }: ChatInterfaceProps) {
   const { messages, isLoading } = useChatStore()
 
   return (
@@ -17,7 +19,7 @@ export function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
       {messages.length === 0 ? (
         <EmptyState />
       ) : (
-        <MessageList messages={messages} />
+        <MessageList messages={messages} persona={persona} />
       )}
       <div className="shrink-0 p-4 bg-background">
         <div className="max-w-3xl mx-auto">

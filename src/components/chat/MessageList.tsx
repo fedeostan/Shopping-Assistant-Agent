@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 import { MessageItem } from './MessageItem'
-import type { Message } from '@/types/chat'
+import type { Message, PersonaType } from '@/types/chat'
 
 interface MessageListProps {
   messages: Message[]
+  persona?: PersonaType
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, persona }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -31,7 +32,7 @@ export function MessageList({ messages }: MessageListProps) {
     >
       <div className="max-w-3xl mx-auto space-y-6">
         {messages.map((message) => (
-          <MessageItem key={message.id} message={message} />
+          <MessageItem key={message.id} message={message} persona={persona} />
         ))}
         <div ref={bottomRef} aria-hidden="true" />
       </div>
