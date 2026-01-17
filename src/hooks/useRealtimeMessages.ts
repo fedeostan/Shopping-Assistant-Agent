@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useChatStore } from '@/stores/chat-store'
 import type { Message, MessageContent } from '@/types/chat'
@@ -60,16 +60,31 @@ function parseMessageContent(row: MessageRow): MessageContent {
 export function useRealtimeMessages(conversationId: string | null) {
   const { messages, addMessage, setMessages } = useChatStore()
 
-  const handleMessageChange = useCallback(
-    (payload: RealtimePostgresChangesPayload<MessageRow>) => {
+  // Use ref to access latest messages without triggering re-subscriptions
+  const messagesRef = useRef(messages)
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
+
+  // Create a stable Supabase client instance
+  const supabase = useMemo(() => createClient(), [])
+
+  useEffect(() => {
+    if (!conversationId) return
+
+    // Handler uses ref to access latest state
+    const handleMessageChange = (
+      payload: RealtimePostgresChangesPayload<MessageRow>
+    ) => {
       const { eventType, new: newRecord, old: oldRecord } = payload
+      const currentMessages = messagesRef.current
 
       switch (eventType) {
         case 'INSERT': {
           if (!newRecord || newRecord.conversation_id !== conversationId) return
 
           // Check if we already have this message (from optimistic update)
-          const exists = messages.some((m) => m.id === newRecord.id)
+          const exists = currentMessages.some((m) => m.id === newRecord.id)
           if (exists) return
 
           const newMessage: Message = {
@@ -86,21 +101,14 @@ export function useRealtimeMessages(conversationId: string | null) {
 
         case 'DELETE': {
           if (!oldRecord) return
-          const filtered = messages.filter((m) => m.id !== oldRecord.id)
-          if (filtered.length !== messages.length) {
+          const filtered = currentMessages.filter((m) => m.id !== oldRecord.id)
+          if (filtered.length !== currentMessages.length) {
             setMessages(filtered)
           }
           break
         }
       }
-    },
-    [conversationId, messages, addMessage, setMessages]
-  )
-
-  useEffect(() => {
-    if (!conversationId) return
-
-    const supabase = createClient()
+    }
 
     // Subscribe to message changes for this conversation
     const channel = supabase
@@ -118,11 +126,13 @@ export function useRealtimeMessages(conversationId: string | null) {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log('Realtime: Subscribed to messages')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Realtime: Channel error for messages')
         }
       })
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [conversationId, handleMessageChange])
+  }, [conversationId, supabase, addMessage, setMessages])
 }
