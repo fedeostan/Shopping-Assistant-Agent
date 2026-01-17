@@ -23,7 +23,7 @@ export default function Home() {
             href="/chat"
             className="
               flex h-12 items-center justify-center
-              bg-[var(--color-accent)] text-white font-medium
+              bg-[var(--color-accent)] !text-white font-medium
               rounded-lg
               transition-colors duration-150 ease-out
               hover:bg-[var(--color-accent-hover)]
