@@ -52,7 +52,7 @@ export function ChatInput({
   const isDisabled = disabled || value.trim().length === 0
 
   return (
-    <div className="bg-surface border border-border rounded-lg shadow-sm">
+    <div className="bg-surface border border-border rounded-lg shadow-sm transition-shadow duration-200 focus-within:shadow-lg focus-within:shadow-accent/20">
       <div className="flex items-end gap-2 p-2">
         <textarea
           ref={textareaRef}
@@ -62,7 +62,7 @@ export function ChatInput({
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none bg-transparent px-3 py-2.5 text-text-body placeholder:text-text-muted focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="chat-input-textarea flex-1 resize-none bg-transparent px-3 py-2.5 text-text-body placeholder:text-text-muted caret-accent disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Message input"
         />
         <button

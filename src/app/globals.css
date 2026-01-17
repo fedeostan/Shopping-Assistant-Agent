@@ -117,6 +117,14 @@ a:hover {
   outline: none;
 }
 
+/* Chat input textarea - focus handled by parent container shadow */
+.chat-input-textarea,
+.chat-input-textarea:focus,
+.chat-input-textarea:focus-visible {
+  outline: none !important;
+  border: none !important;
+}
+
 /* Utility classes */
 .accent-decorative {
   color: var(--color-accent-decorative);
