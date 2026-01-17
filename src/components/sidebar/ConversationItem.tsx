@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { MessageSquare, Trash2 } from 'lucide-react'
 import type { Conversation } from '@/types/chat'
 
@@ -10,7 +11,7 @@ interface ConversationItemProps {
   onDelete?: () => void
 }
 
-export function ConversationItem({
+export const ConversationItem = memo(function ConversationItem({
   conversation,
   isActive,
   onClick,
@@ -62,7 +63,7 @@ export function ConversationItem({
       )}
     </div>
   )
-}
+})
 
 function formatRelativeDate(date: Date): string {
   const now = new Date()

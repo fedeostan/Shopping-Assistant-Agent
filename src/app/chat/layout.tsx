@@ -1,10 +1,15 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { PanelLeft } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useChatStore } from '@/stores/chat-store'
 import { ChatSidebar } from '@/components/sidebar/ChatSidebar'
 import { createClient } from '@/lib/supabase/client'
+import { ToastContainer } from '@/components/ui/Toast'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { Spinner } from '@/components/ui/Spinner'
+import { useRealtimeConversations } from '@/hooks/useRealtimeConversations'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { Conversation } from '@/types/chat'
 
 interface ChatLayoutProps {
@@ -12,8 +17,20 @@ interface ChatLayoutProps {
 }
 
 export default function ChatLayout({ children }: ChatLayoutProps) {
-  const { sidebarOpen, toggleSidebar, setConversations } = useChatStore()
+  const { sidebarOpen, toggleSidebar, setSidebarOpen, setConversations } = useChatStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const isMobile = useIsMobile()
+
+  // Enable realtime sync for conversations
+  useRealtimeConversations(userId)
+
+  // Close sidebar by default on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false)
+    }
+  }, [isMobile, setSidebarOpen])
 
   // Load conversations on mount
   useEffect(() => {
@@ -22,6 +39,8 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
+
+      setUserId(user.id)
 
       const { data, error } = await supabase
         .from('conversations')
@@ -45,40 +64,62 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
     loadConversations()
   }, [setConversations])
 
+  // Show mobile header when sidebar is closed or on mobile
+  const showHeader = !sidebarOpen || isMobile
+
   return (
-    <div className="h-screen flex overflow-hidden bg-background">
-      {/* Sidebar */}
-      <ChatSidebar />
+    <ErrorBoundary>
+      <div className="h-screen flex overflow-hidden bg-background">
+        {/* Skip to main content link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg"
+        >
+          Skip to main content
+        </a>
 
-      {/* Main content area */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Header with toggle when sidebar is closed */}
-        {!sidebarOpen && (
-          <header className="shrink-0 h-14 px-4 flex items-center border-b border-border bg-surface">
-            <button
-              onClick={toggleSidebar}
-              className="p-2 rounded-md hover:bg-surface-elevated text-text-muted hover:text-text-body transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Open sidebar"
-            >
-              <PanelLeft className="w-5 h-5" aria-hidden="true" />
-            </button>
-            <h1 className="ml-3 font-semibold text-text-header">
-              Shopping Assistant
-            </h1>
-          </header>
-        )}
+        {/* Sidebar */}
+        <ChatSidebar isLoading={isLoading} />
 
-        {/* Chat content */}
-        <div className="flex-1 min-h-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-text-muted">Loading...</div>
-            </div>
-          ) : (
-            children
+        {/* Main content area */}
+        <main id="main-content" className="flex-1 flex flex-col min-w-0">
+          {/* Header - always show on mobile, or when sidebar closed on desktop */}
+          {showHeader && (
+            <header className="shrink-0 h-14 px-4 flex items-center border-b border-border bg-surface">
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-md hover:bg-surface-elevated text-text-muted hover:text-text-body transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+                aria-label="Open menu"
+                aria-expanded={sidebarOpen}
+              >
+                <Menu className="w-5 h-5" aria-hidden="true" />
+              </button>
+              <h1 className="ml-3 font-semibold text-text-header truncate">
+                Shopping Assistant
+              </h1>
+            </header>
           )}
-        </div>
-      </main>
-    </div>
+
+          {/* Chat content */}
+          <div className="flex-1 min-h-0">
+            {isLoading ? (
+              <div
+                className="flex flex-col items-center justify-center h-full gap-3"
+                role="status"
+                aria-label="Loading chat"
+              >
+                <Spinner size="lg" />
+                <p className="text-sm text-text-muted">Loading your conversations...</p>
+              </div>
+            ) : (
+              children
+            )}
+          </div>
+        </main>
+
+        {/* Toast notifications */}
+        <ToastContainer />
+      </div>
+    </ErrorBoundary>
   )
 }

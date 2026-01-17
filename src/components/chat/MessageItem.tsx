@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { User, Bot } from 'lucide-react'
 import type { Message, PersonaType } from '@/types/chat'
 import { MessageContentRenderer } from './messages'
@@ -9,7 +10,7 @@ interface MessageItemProps {
   persona?: PersonaType
 }
 
-export function MessageItem({ message, persona }: MessageItemProps) {
+export const MessageItem = memo(function MessageItem({ message, persona }: MessageItemProps) {
   const isUser = message.role === 'user'
 
   return (
@@ -43,4 +44,4 @@ export function MessageItem({ message, persona }: MessageItemProps) {
       )}
     </div>
   )
-}
+})
