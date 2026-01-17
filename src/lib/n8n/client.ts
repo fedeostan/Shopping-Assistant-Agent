@@ -6,7 +6,7 @@ import type {
 
 // Default configuration
 const DEFAULT_CONFIG: Required<N8nClientConfig> = {
-  webhookUrl: process.env.N8N_WEBHOOK_URL || 'https://fedeostan.app.n8n.cloud/webhook/shopping-assistant',
+  webhookUrl: process.env.N8N_WEBHOOK_URL || 'https://fedeostan.app.n8n.cloud/webhook/shopping-assistant-api',
   timeout: 95000, // 95 seconds (n8n Cloud has 100s timeout)
   maxRetries: 3,
 }
@@ -111,9 +111,17 @@ export async function* streamChat(
         }
 
         const errorText = await response.text().catch(() => 'Unknown error')
+
+        // Provide helpful error message for common issues
+        let errorMessage = `n8n webhook error: ${response.status} ${response.statusText}`
+        if (response.status === 404) {
+          errorMessage = `n8n webhook not found (404). Verify N8N_WEBHOOK_URL in .env.local matches your n8n webhook path. Expected: https://fedeostan.app.n8n.cloud/webhook/shopping-assistant-api`
+          console.error(`[n8n] Webhook 404 - Current URL: ${webhookUrl}`)
+        }
+
         yield {
           type: 'error',
-          message: `n8n webhook error: ${response.status} ${response.statusText}`,
+          message: errorMessage,
           code: errorText,
         }
         return

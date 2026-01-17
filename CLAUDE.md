@@ -35,7 +35,8 @@ src/
 
 ### n8n Workflow
 - **Workflow ID**: `xVkkSX6Lk9OBmY0r`
-- **Webhook URL**: `https://fedeostan.app.n8n.cloud/webhook/shopping-assistant`
+- **Webhook URL**: `https://fedeostan.app.n8n.cloud/webhook/shopping-assistant-api`
+- **Trigger**: Webhook Trigger (POST, responds with last node output)
 - **User States**: NEW → ONBOARDING → PROFILED
 - **Agents**: Email Collector → Profiling Agent → Shopping Assistant
 
