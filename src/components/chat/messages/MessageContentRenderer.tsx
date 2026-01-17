@@ -47,9 +47,11 @@ export function MessageContentRenderer({
     case 'product-list':
       return <ProductList products={content.products} persona={persona} />
 
-    default:
+    default: {
       // TypeScript exhaustiveness check - should never reach here
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _exhaustiveCheck: never = content
       return null
+    }
   }
 }
