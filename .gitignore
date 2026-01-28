@@ -34,8 +34,12 @@ yarn-error.log*
 .env*
 !.env.local.example
 
+# MCP config (contains API keys)
+.mcp.json
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
+.env*.local

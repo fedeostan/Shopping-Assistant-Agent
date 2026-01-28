@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Menu } from 'lucide-react'
 import { useChatStore } from '@/stores/chat-store'
 import { ChatSidebar } from '@/components/sidebar/ChatSidebar'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { ToastContainer } from '@/components/ui/Toast'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Spinner } from '@/components/ui/Spinner'
@@ -35,7 +35,7 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
   // Load conversations on mount
   useEffect(() => {
     async function loadConversations() {
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
@@ -64,8 +64,9 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
     loadConversations()
   }, [setConversations])
 
-  // Show mobile header when sidebar is closed or on mobile
-  const showHeader = !sidebarOpen || isMobile
+  // Show mobile header only when sidebar is closed on mobile
+  // On desktop, sidebar is always visible (collapsed or expanded)
+  const showMobileHeader = isMobile && !sidebarOpen
 
   return (
     <ErrorBoundary>
@@ -78,13 +79,13 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
           Skip to main content
         </a>
 
-        {/* Sidebar */}
+        {/* Sidebar - always visible on desktop (collapsed or expanded) */}
         <ChatSidebar isLoading={isLoading} />
 
         {/* Main content area */}
         <main id="main-content" className="flex-1 flex flex-col min-w-0">
-          {/* Header - always show on mobile, or when sidebar closed on desktop */}
-          {showHeader && (
+          {/* Mobile header - only show when sidebar is closed on mobile */}
+          {showMobileHeader && (
             <header className="shrink-0 h-14 px-4 flex items-center border-b border-border bg-surface">
               <button
                 onClick={toggleSidebar}

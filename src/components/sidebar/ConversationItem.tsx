@@ -1,7 +1,9 @@
 'use client'
 
-import { memo } from 'react'
-import { MessageSquare, Trash2 } from 'lucide-react'
+import { memo, useState } from 'react'
+import { MessageSquare, MoreVertical, Trash2 } from 'lucide-react'
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/DropdownMenu'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { Conversation } from '@/types/chat'
 
 interface ConversationItemProps {
@@ -17,51 +19,82 @@ export const ConversationItem = memo(function ConversationItem({
   onClick,
   onDelete,
 }: ConversationItemProps) {
+  const [showConfirm, setShowConfirm] = useState(false)
   const displayTitle = conversation.title || 'New conversation'
   const formattedDate = formatRelativeDate(conversation.updatedAt)
 
+  const handleDeleteClick = () => {
+    setShowConfirm(true)
+  }
+
+  const handleConfirmDelete = () => {
+    setShowConfirm(false)
+    onDelete?.()
+  }
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      className={`group relative flex items-start gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset ${
-        isActive
-          ? 'bg-accent-light text-accent'
-          : 'hover:bg-surface-elevated text-text-body'
-      }`}
-      aria-current={isActive ? 'page' : undefined}
-      aria-label={`${displayTitle}, ${formattedDate}`}
-    >
-      <MessageSquare
-        className={`w-5 h-5 mt-0.5 shrink-0 ${
-          isActive ? 'text-accent' : 'text-text-muted'
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        }}
+        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset ${
+          isActive
+            ? 'bg-accent-light text-accent'
+            : 'hover:bg-surface-elevated text-text-body'
         }`}
-        aria-hidden="true"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{displayTitle}</p>
-        <p className="text-xs text-text-muted mt-0.5">{formattedDate}</p>
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={`${displayTitle}, ${formattedDate}`}
+      >
+        <MessageSquare
+          className={`w-5 h-5 shrink-0 ${
+            isActive ? 'text-accent' : 'text-text-muted'
+          }`}
+          aria-hidden="true"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{displayTitle}</p>
+          <p className="text-xs text-text-muted mt-0.5">{formattedDate}</p>
+        </div>
+        {onDelete && (
+          <div
+            className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <DropdownMenu
+              trigger={<MoreVertical className="w-4 h-4" aria-hidden="true" />}
+              triggerClassName="p-1.5 rounded-md hover:bg-white/50 text-text-muted hover:text-text-body transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+              aria-label={`Options for ${displayTitle}`}
+            >
+              <DropdownMenuItem
+                onClick={handleDeleteClick}
+                icon={<Trash2 className="w-4 h-4" />}
+                variant="destructive"
+              >
+                Delete chat
+              </DropdownMenuItem>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-50 text-text-muted hover:text-red-600 transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:opacity-100"
-          aria-label={`Delete conversation: ${displayTitle}`}
-        >
-          <Trash2 className="w-4 h-4" aria-hidden="true" />
-        </button>
-      )}
-    </div>
+
+      <ConfirmDialog
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete conversation?"
+        description="This will permanently delete this conversation and all its messages. This action cannot be undone."
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+      />
+    </>
   )
 })
 

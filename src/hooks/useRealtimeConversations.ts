@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useCallback, useRef } from 'react'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { useChatStore } from '@/stores/chat-store'
+import { useRealtimeSubscription } from './useRealtimeSubscription'
 import { toast } from '@/stores/toast-store'
 import type { Conversation } from '@/types/chat'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
-interface ConversationRow {
+interface ConversationRow extends Record<string, unknown> {
   id: string
   title: string | null
   n8n_session_id: string | null
@@ -17,32 +18,16 @@ interface ConversationRow {
 }
 
 export function useRealtimeConversations(userId: string | null) {
-  const { conversations, setConversations, updateConversationTitle } = useChatStore()
+  const { setConversations, updateConversationTitle } = useChatStore()
 
-  // Use ref to access latest conversations without triggering re-subscriptions
-  const conversationsRef = useRef(conversations)
-  useEffect(() => {
-    conversationsRef.current = conversations
-  }, [conversations])
+  // Use singleton client via ref (stable reference)
+  const supabaseRef = useRef(getSupabaseClient())
 
-  // Create a stable Supabase client instance
-  const supabase = useMemo(() => createClient(), [])
-
-  // Track if we've shown an error toast to prevent spam
-  const hasShownErrorRef = useRef(false)
-
-  useEffect(() => {
-    if (!userId) return
-
-    // Reset error state when userId changes
-    hasShownErrorRef.current = false
-
-    // Handler uses ref to access latest state
-    const handleConversationChange = (
-      payload: RealtimePostgresChangesPayload<ConversationRow>
-    ) => {
+  // Handler for realtime changes - uses store.getState() to avoid closure issues
+  const handlePayload = useCallback(
+    (payload: RealtimePostgresChangesPayload<ConversationRow>) => {
       const { eventType, new: newRecord, old: oldRecord } = payload
-      const currentConversations = conversationsRef.current
+      const currentConversations = useChatStore.getState().conversations
 
       switch (eventType) {
         case 'INSERT': {
@@ -83,37 +68,43 @@ export function useRealtimeConversations(userId: string | null) {
           break
         }
       }
-    }
+    },
+    [setConversations, updateConversationTitle]
+  )
 
-    // Subscribe to conversation changes for this user
-    const channel = supabase
-      .channel(`conversations:${userId}`)
-      .on<ConversationRow>(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-          filter: `user_id=eq.${userId}`,
-        },
-        handleConversationChange
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Realtime: Subscribed to conversations')
-          hasShownErrorRef.current = false // Reset on successful connection
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Realtime: Channel error for conversations')
-          // Only show error toast once to prevent spam
-          if (!hasShownErrorRef.current) {
-            hasShownErrorRef.current = true
-            toast.error('Failed to connect to realtime updates')
-          }
-        }
-      })
+  // Refetch conversations on reconnection to catch any missed updates
+  const handleReconnect = useCallback(async () => {
+    if (!userId) return
 
-    return () => {
-      supabase.removeChannel(channel)
+    const { data, error } = await supabaseRef.current
+      .from('conversations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+
+    if (!error && data) {
+      const conversations: Conversation[] = data.map((row) => ({
+        id: row.id,
+        title: row.title,
+        n8nSessionId: row.n8n_session_id || '',
+        createdAt: new Date(row.created_at || Date.now()),
+        updatedAt: new Date(row.updated_at || Date.now()),
+      }))
+      setConversations(conversations)
     }
-  }, [userId, supabase, setConversations, updateConversationTitle])
+  }, [userId, setConversations])
+
+  // CRITICAL: Only subscribe when userId is valid and non-empty
+  // Pass null as subscriptionKey to disable subscription when no user
+  return useRealtimeSubscription<ConversationRow>({
+    subscriptionKey: userId && userId.trim() !== '' ? userId : null,
+    channelPrefix: 'conversations',
+    table: 'conversations',
+    // Filter value is validated by useRealtimeSubscription, but we ensure
+    // it's never empty when subscriptionKey is set
+    filter: { column: 'user_id', value: userId || '' },
+    onPayload: handlePayload,
+    onReconnect: handleReconnect,
+    showErrorToast: true,
+  })
 }

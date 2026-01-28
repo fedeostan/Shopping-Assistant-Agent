@@ -3,7 +3,7 @@
 import { useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useChatStore } from '@/stores/chat-store'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { parseChunk } from '@/lib/n8n/client'
 import type { N8nStreamChunk, N8nToolCallResult } from '@/lib/n8n/types'
 import type { Message, MessageContent, Conversation } from '@/types/chat'
@@ -46,7 +46,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      const supabase = createClient()
+      // Use singleton Supabase client (NOT new instance per message!)
+      const supabase = getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
@@ -60,16 +61,24 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // Create abort controller for this request
       abortControllerRef.current = new AbortController()
 
+      // Track if this is a new conversation (for navigation later)
+      let isNewConversation = false
+      let createdConversationId: string | null = null
+
       try {
         let activeConversationId = conversationId
         let activeSessionId = n8nSessionId
 
         // If no conversation exists, create one
         if (!activeConversationId) {
+          isNewConversation = true
           const newConversationId = crypto.randomUUID()
           const newSessionId = crypto.randomUUID()
 
-          // Create conversation in database
+          // Capture the ID for navigation (before any async operations might change state)
+          createdConversationId = newConversationId
+
+          // Create conversation in database FIRST
           const { error: convError } = await supabase
             .from('conversations')
             .insert({
@@ -97,15 +106,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
           activeConversationId = newConversationId
           activeSessionId = newSessionId
-
-          // Navigate to conversation page
-          router.push(`/chat/${newConversationId}`)
         }
 
         // Create user message
         const userMessageId = crypto.randomUUID()
 
-        // Save user message to database
+        // Save user message to database FIRST
         const { error: msgError } = await supabase
           .from('messages')
           .insert({
@@ -126,7 +132,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           .update({ updated_at: new Date().toISOString() })
           .eq('id', activeConversationId)
 
-        // Add user message to store
+        // Add user message to store AFTER DB write succeeds
         const userMessage: Message = {
           id: userMessageId,
           conversationId: activeConversationId,
@@ -135,6 +141,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           createdAt: new Date(),
         }
         addMessage(userMessage)
+
+        // FIXED: Navigate AFTER message is in store, using the captured ID
+        // Add a microtask delay to ensure React has processed the store update
+        if (isNewConversation && createdConversationId) {
+          await new Promise(resolve => setTimeout(resolve, 0))
+          router.push(`/chat/${createdConversationId}`)
+        }
 
         // Create assistant message (initially thinking)
         const assistantMessageId = crypto.randomUUID()

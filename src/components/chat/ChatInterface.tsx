@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingBag } from 'lucide-react'
+import Image from 'next/image'
 import { useChatStore } from '@/stores/chat-store'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
@@ -38,8 +38,14 @@ function EmptyState() {
   return (
     <div className="flex-1 flex items-center justify-center p-8">
       <div className="text-center max-w-md">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-accent-light flex items-center justify-center">
-          <ShoppingBag className="w-8 h-8 text-accent" aria-hidden="true" />
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full overflow-hidden">
+          <Image
+            src="/icon.png"
+            alt="Shopping Assistant"
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
         <h2 className="text-xl font-semibold text-text-header mb-3">
           Your Shopping Assistant

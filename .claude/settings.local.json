@@ -1,11 +1,36 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "mcp__n8n-mcp__n8n_get_workflow",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nHardcode n8n webhook URL - remove env variable configuration\n\n- Hardcode the webhook URL directly in the n8n client\n- Remove N8N_WEBHOOK_URL from .env.local.example \\(no longer needed\\)\n- Simplify 404 error message since there''s no env var to check\n\nThis makes the app work out of the box without any n8n configuration.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "mcp__n8n-mcp__n8n_update_partial_workflow",
+      "Bash(vercel --version:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel login)",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__get_logs",
+      "mcp__n8n-mcp__n8n_health_check",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__search_docs",
+      "WebSearch",
+      "WebFetch(domain:supabase.com)",
+      "Bash(cd:*)",
+      "Bash(gh issue view:*)",
+      "WebFetch(domain:github.com)",
+      "mcp__supabase__get_project",
+      "mcp__supabase__list_extensions",
+      "Bash(gh issue create:*)",
+      "Bash(cd /Volumes/DEV_SSD/Shopping\\\\ Assistant\\\\ Agent && git commit:*)",
+      "Bash(npm run build:*)"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ],
-  "permissions": {
-    "allow": [
-      "Bash(unzip:*)"
-    ]
-  }
+  ]
 }

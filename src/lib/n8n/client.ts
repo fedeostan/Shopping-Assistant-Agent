@@ -5,12 +5,12 @@ import type {
 } from './types'
 
 // n8n webhook URL (hardcoded for this project)
-const N8N_WEBHOOK_URL = 'https://fedeostan.app.n8n.cloud/webhook/shopping-assistant-api'
+const N8N_WEBHOOK_URL = 'https://n8n-production-ccaa.up.railway.app/webhook/shopping-assistant-api'
 
 // Default configuration
 const DEFAULT_CONFIG: Required<N8nClientConfig> = {
   webhookUrl: N8N_WEBHOOK_URL,
-  timeout: 95000, // 95 seconds (n8n Cloud has 100s timeout)
+  timeout: 95000, // 95 seconds
   maxRetries: 3,
 }
 

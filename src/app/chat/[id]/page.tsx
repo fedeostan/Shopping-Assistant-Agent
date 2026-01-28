@@ -4,8 +4,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useChatStore } from '@/stores/chat-store'
 import { ChatInterface } from '@/components/chat/ChatInterface'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { useChat } from '@/hooks/useChat'
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages'
 import type { Message } from '@/types/chat'
 
 export default function ChatPage() {
@@ -38,10 +39,13 @@ export default function ChatPage() {
     onError: (err) => console.error('Chat error:', err),
   })
 
+  // Enable realtime sync for messages (only after page is ready)
+  useRealtimeMessages(isReady ? conversationId : null)
+
   // Load messages for this conversation
   useEffect(() => {
     async function loadMessages() {
-      const supabase = createClient()
+      const supabase = getSupabaseClient()
 
       // Verify conversation exists and belongs to user
       const { data: { user } } = await supabase.auth.getUser()
@@ -65,22 +69,30 @@ export default function ChatPage() {
       setDbSessionId(conversation.n8n_session_id ?? undefined)
       setActiveConversation(conversationId)
 
-      // Load messages
-      const { data: messagesData } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
+      // Check if we already have messages for this conversation in the store
+      // This prevents overwriting messages that were just added (e.g., during new chat creation)
+      const currentStoreMessages = useChatStore.getState().messages
+      const hasExistingMessages = currentStoreMessages.length > 0 &&
+        currentStoreMessages.some((m) => m.conversationId === conversationId)
 
-      if (messagesData) {
-        const messages: Message[] = messagesData.map((row) => ({
-          id: row.id,
-          conversationId: row.conversation_id,
-          role: row.role as 'user' | 'assistant',
-          content: parseMessageContent(row.content, row.message_type, row.metadata),
-          createdAt: new Date(row.created_at || Date.now()),
-        }))
-        setMessages(messages)
+      if (!hasExistingMessages) {
+        // Only load from DB if store doesn't have messages for this conversation
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+
+        if (messagesData) {
+          const messages: Message[] = messagesData.map((row) => ({
+            id: row.id,
+            conversationId: row.conversation_id,
+            role: row.role as 'user' | 'assistant',
+            content: parseMessageContent(row.content, row.message_type, row.metadata),
+            createdAt: new Date(row.created_at || Date.now()),
+          }))
+          setMessages(messages)
+        }
       }
 
       setIsReady(true)
